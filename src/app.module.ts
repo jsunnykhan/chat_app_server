@@ -7,6 +7,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthenticateModule } from './authenticate/authenticate.module';
 import { UserModule } from './user/user.module';
 import { AccessTokenStrategy } from './authenticate/strategy/access.strategy';
+import { FriendsModule } from './friends/friends.module';
+import { Friend } from './friends/entities/friend.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -17,12 +19,13 @@ import { AccessTokenStrategy } from './authenticate/strategy/access.strategy';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [User, Password],
+      entities: [User, Password, Friend],
       synchronize: true,
       retryAttempts: 3,
     }),
     UserModule,
     AuthenticateModule,
+    FriendsModule,
   ],
   controllers: [],
   providers: [AccessTokenStrategy],

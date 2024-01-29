@@ -13,7 +13,7 @@ import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AccessTokenGuard } from 'src/authenticate/guard/accessToken.guard';
-
+@UseGuards(AccessTokenGuard)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -24,7 +24,6 @@ export class UserController {
   }
 
   @Get()
-  @UseGuards(AccessTokenGuard)
   findAll(@Request() req) {
     console.log(req.user);
     return this.userService.findAll();

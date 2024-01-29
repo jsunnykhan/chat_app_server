@@ -11,7 +11,6 @@ export class Password {
   hash: string;
   @Column({ nullable: true })
   algo: string;
-
   @OneToOne(() => User, (user) => user.password)
-  user: User;
+  user_id: User;
 }

@@ -1,9 +1,11 @@
 import { Password } from 'src/authenticate/entities/password.entity';
+import { Friend } from 'src/friends/entities/friend.entity';
 import {
   Column,
   Entity,
   Generated,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -16,15 +18,15 @@ export class CommonColum {
   updated_at: string;
   @Column({ type: 'uuid', nullable: true })
   last_update: string;
+
+  @Generated('uuid')
+  @Column({ type: 'uuid' })
+  uuid: string;
 }
 @Entity()
 export class User extends CommonColum {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Generated('uuid')
-  @Column({ type: 'uuid' })
-  uuid: string;
 
   @Column({ nullable: true })
   name: string;
@@ -38,7 +40,11 @@ export class User extends CommonColum {
   @Column({ nullable: true })
   refresh: string;
 
-  @OneToOne(() => Password, (password) => password.user, { cascade: true })
-  @JoinColumn()
+  @OneToOne(() => Password, (password) => password.user_id, { cascade: true })
+  @JoinColumn({ name: 'password', referencedColumnName: 'id' })
   password: Password;
+
+  @OneToMany(() => Friend, (friend) => friend.user_id, { cascade: true })
+  @JoinColumn({ name: 'friend_id', referencedColumnName: 'id' })
+  friend: Friend[];
 }
