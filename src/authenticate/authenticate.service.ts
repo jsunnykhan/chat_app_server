@@ -5,49 +5,40 @@ import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
-} from '@nestjs/common';
-import { LoginDto } from './dto/login.dto';
-import { IRegisterPayload, RegisterDto } from './dto/register.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/user/entities/user.entity';
-import { Repository } from 'typeorm';
-import { Password } from './entities/password.entity';
-import * as bcrypt from 'bcrypt';
-import { Algorithm, sign, decode } from 'jsonwebtoken';
-import { RefreshAuthenticateDto } from './dto/refresh.dto';
-import { ConfigService } from '@nestjs/config';
+} from "@nestjs/common";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+import { InjectRepository } from "@nestjs/typeorm";
+import { UserEntity } from "src/user/entities/user.entity";
+import { Repository } from "typeorm";
+import { Password } from "./entities/password.entity";
+import * as bcrypt from "bcrypt";
+import { Algorithm, sign, decode } from "jsonwebtoken";
+import { RefreshAuthenticateDto } from "./dto/refresh.dto";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class AuthenticateService {
   constructor(
-    @InjectRepository(User)
-    private readonly userDataSource: Repository<User>,
+    @InjectRepository(UserEntity)
+    private readonly userDataSource: Repository<UserEntity>,
     @InjectRepository(Password)
     private readonly passwordDataSource: Repository<Password>,
     private config: ConfigService,
   ) {}
 
-  async register(
-    createAuthenticateDto: RegisterDto,
-  ): Promise<IRegisterPayload> {
-    try {
-      const isUser = await this.findUserByEmail(createAuthenticateDto.username);
-      if (isUser)
-        throw new HttpException('user already register', HttpStatus.FORBIDDEN);
-      const hashOptions = await this.createHash(createAuthenticateDto.password);
-      const savedUser = await this.saveUser({
-        createAuthenticateDto,
-        hashOptions,
-      });
-      if (savedUser) {
-        const credentials = await this.createAccessAndRefreshToken(savedUser);
-        await this.updateRefreshToken(credentials.refresh, savedUser);
-        return credentials;
-      } else {
-        throw new InternalServerErrorException();
-      }
-    } catch (error: any) {
-      throw error;
+  async register(createAuthenticateDto: RegisterDto): Promise<Partial<UserEntity>> {
+    const isUser = await this.findUserByEmail(createAuthenticateDto.username);
+    if (isUser) throw new HttpException("user already register", HttpStatus.FORBIDDEN);
+    const hashOptions = await this.createHash(createAuthenticateDto.password);
+    const savedUser = await this.saveUser({
+      createAuthenticateDto,
+      hashOptions,
+    });
+    if (savedUser) {
+      return savedUser;
+    } else {
+      throw new InternalServerErrorException();
     }
   }
 
@@ -55,37 +46,29 @@ export class AuthenticateService {
     try {
       const user = await this.userDataSource.findOne({
         where: { email: loginAuthenticateDto.username },
-        relations: ['password'],
+        relations: ["password"],
       });
 
-      if (!user) throw new HttpException('No user found', HttpStatus.NOT_FOUND);
+      if (!user) throw new HttpException("No user found", HttpStatus.NOT_FOUND);
 
-      const isPasswordValid = await this.verifyPassword(
-        loginAuthenticateDto.password,
-        user.password,
-      );
+      const isPasswordValid = await this.verifyPassword(loginAuthenticateDto.password, user.password);
       if (!isPasswordValid) throw new UnauthorizedException();
       const credentials = await this.createAccessAndRefreshToken(user);
       await this.updateRefreshToken(credentials.refresh, user);
       return credentials;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   }
 
   async refreshToken(refreshDto: RefreshAuthenticateDto) {
-    try {
-      const decoded: any = decode(refreshDto.refresh);
-      if (decoded.exp > Date.now()) throw new UnauthorizedException();
-      const user = await this.findUserByUUID(decoded.id);
-      if (refreshDto.refresh !== user.refresh)
-        throw new ForbiddenException('Access Denied');
-      const credentials = await this.createAccessAndRefreshToken(user);
-      await this.updateRefreshToken(credentials.refresh, user);
-      return credentials;
-    } catch (error: any) {
-      throw error;
-    }
+    const decoded: any = decode(refreshDto.refresh);
+    if (decoded.exp > Date.now()) throw new UnauthorizedException();
+    const user = await this.findUserByUUID(decoded.id);
+    if (refreshDto.refresh !== user.refresh) throw new ForbiddenException("Access Denied");
+    const credentials = await this.createAccessAndRefreshToken(user);
+    await this.updateRefreshToken(credentials.refresh, user);
+    return credentials;
   }
 
   private async findUserByEmail(username: string) {
@@ -106,7 +89,7 @@ export class AuthenticateService {
     createAuthenticateDto: RegisterDto;
     hashOptions: { hash: string; salt: string };
   }) {
-    return await this.userDataSource.save({
+    const { uuid, email, created_at, updated_at } = await this.userDataSource.save({
       email: createAuthenticateDto.username,
       provider: createAuthenticateDto.provider,
       password: {
@@ -114,9 +97,11 @@ export class AuthenticateService {
         salt: hashOptions.salt,
       },
     });
+
+    return { uuid, email, created_at, updated_at };
   }
 
-  private async updateRefreshToken(refresh: string, user: User) {
+  private async updateRefreshToken(refresh: string, user: UserEntity) {
     await this.userDataSource.save({
       ...user,
       refresh,
@@ -129,16 +114,13 @@ export class AuthenticateService {
     return { hash, salt };
   }
 
-  private async verifyPassword(
-    fromClient: string,
-    fromServer: Password,
-  ): Promise<boolean> {
+  private async verifyPassword(fromClient: string, fromServer: Password): Promise<boolean> {
     return await bcrypt.compare(fromClient, fromServer.hash);
   }
 
-  private async createJwtToken(user: User, expire: number) {
-    const algorithm: Algorithm = 'HS256';
-    const privateKey = this.config.get('JWT_SECRET_KEY');
+  private async signTokenAsync(user: UserEntity, expire: number) {
+    const algorithm: Algorithm = "HS256";
+    const privateKey = this.config.get("JWT_SECRET_KEY");
     return sign(
       {
         email: user.email,
@@ -148,21 +130,17 @@ export class AuthenticateService {
       {
         algorithm,
         expiresIn: expire,
-        issuer: 'server:8000',
+        issuer: "server:8000",
       },
     );
   }
 
-  private async createAccessAndRefreshToken(user: User) {
-    const token = await this.createJwtToken(
-      user,
-      Number(this.config.get('ACCESS_TOKEN_EXPIRE_IN_MINUTES')) * 60,
-    );
+  private async createAccessAndRefreshToken(user: UserEntity) {
+    const accessExpireIn = Number(this.config.get("ACCESS_TOKEN_EXPIRE_IN_MINUTES")) * 60;
+    const refreshExpireIn = Number(this.config.get("REFRESH_TOKEN_EXPIRE_IN_MINUTES")) * 60;
 
-    const refreshToken = await this.createJwtToken(
-      user,
-      Number(this.config.get('REFRESH_TOKEN_EXPIRE_IN_MINUTES')) * 60,
-    );
+    const token = await this.signTokenAsync(user, accessExpireIn);
+    const refreshToken = await this.signTokenAsync(user, refreshExpireIn);
 
     return { access: token, refresh: refreshToken };
   }

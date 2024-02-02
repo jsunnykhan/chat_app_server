@@ -1,37 +1,41 @@
-import { Password } from 'src/authenticate/entities/password.entity';
-import { Friend } from 'src/friends/entities/friend.entity';
+import { Password } from "src/authenticate/entities/password.entity";
+import { StatusEntity } from "src/friends/entities/status.entity";
 import {
   Column,
+  CreateDateColumn,
   Entity,
   Generated,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm';
+  UpdateDateColumn,
+} from "typeorm";
 
 @Entity()
 export class CommonColum {
-  @Column({ type: 'date', nullable: false, default: new Date() })
+  @CreateDateColumn()
   created_at: string;
-  @Column({ type: 'date', nullable: true })
+
+  @UpdateDateColumn()
   updated_at: string;
-  @Column({ type: 'uuid', nullable: true })
+
+  @Column({ type: "uuid", nullable: true })
   last_update: string;
 
-  @Generated('uuid')
-  @Column({ type: 'uuid' })
+  @Generated("uuid")
+  @Column({ type: "uuid" })
   uuid: string;
 }
-@Entity()
-export class User extends CommonColum {
+@Entity({ name: "users" })
+export class UserEntity extends CommonColum {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true })
-  name: string;
-
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
   email: string;
 
   @Column({ nullable: true })
@@ -40,11 +44,10 @@ export class User extends CommonColum {
   @Column({ nullable: true })
   refresh: string;
 
-  @OneToOne(() => Password, (password) => password.user_id, { cascade: true })
-  @JoinColumn({ name: 'password', referencedColumnName: 'id' })
+  @OneToOne(() => Password, (password) => password.user, { cascade: true })
+  @JoinColumn({ name: "password", referencedColumnName: "id" })
   password: Password;
 
-  @OneToMany(() => Friend, (friend) => friend.user_id, { cascade: true })
-  @JoinColumn({ name: 'friend_id', referencedColumnName: 'id' })
-  friend: Friend[];
+  @ManyToMany((type) => StatusEntity, (connection) => connection.users)
+  connections: StatusEntity[];
 }

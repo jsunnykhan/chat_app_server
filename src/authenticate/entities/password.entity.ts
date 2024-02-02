@@ -1,4 +1,4 @@
-import { User } from 'src/user/entities/user.entity';
+import { UserEntity } from 'src/user/entities/user.entity';
 import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -11,6 +11,6 @@ export class Password {
   hash: string;
   @Column({ nullable: true })
   algo: string;
-  @OneToOne(() => User, (user) => user.password)
-  user_id: User;
+  @OneToOne(() => UserEntity, (user) => user.password)
+  user: UserEntity;
 }
