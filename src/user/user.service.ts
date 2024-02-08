@@ -18,7 +18,6 @@ export class UserService {
           email: true,
           created_at: true,
           uuid: true,
-          provider: true,
           updated_at: true,
         },
         order: {
@@ -37,7 +36,6 @@ export class UserService {
         select: {
           email: true,
           uuid: true,
-          provider: true,
           created_at: true,
           updated_at: true,
         },

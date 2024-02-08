@@ -1,52 +1,16 @@
-import { Password } from "src/authenticate/entities/password.entity";
+import { AuthEntity } from "src/authenticate/entities/auth.entity";
+import { CommonEntity } from "src/database/commonEntity";
 import { StatusEntity } from "src/friends/entities/status.entity";
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Generated,
-  JoinColumn,
-  JoinTable,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-  OneToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
+import { Column, Entity, JoinColumn, ManyToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 
-@Entity()
-export class CommonColum {
-  @CreateDateColumn()
-  created_at: string;
-
-  @UpdateDateColumn()
-  updated_at: string;
-
-  @Column({ type: "uuid", nullable: true })
-  last_update: string;
-
-  @Generated("uuid")
-  @Column({ type: "uuid" })
-  uuid: string;
-}
 @Entity({ name: "users" })
-export class UserEntity extends CommonColum {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class UserEntity extends CommonEntity<UserEntity> {
   @Column({ unique: true, nullable: true })
   email: string;
 
-  @Column({ nullable: true })
-  provider: string;
 
-  @Column({ nullable: true })
-  refresh: string;
-
-  @OneToOne(() => Password, (password) => password.user, { cascade: true })
-  @JoinColumn({ name: "password", referencedColumnName: "id" })
-  password: Password;
+  @OneToOne((type) => AuthEntity, (auth) => auth.user)
+  auth: AuthEntity;
 
   @ManyToMany((type) => StatusEntity, (connection) => connection.users)
   connections: StatusEntity[];

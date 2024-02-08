@@ -8,6 +8,4 @@ export const selectedUserOptions: FindOptionsSelect<UserEntity> = {
   uuid: true,
   id: false,
   email: true,
-  provider: true,
-  refresh: false,
 };

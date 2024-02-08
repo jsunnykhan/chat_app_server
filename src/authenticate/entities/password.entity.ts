@@ -1,16 +1,19 @@
-import { UserEntity } from 'src/user/entities/user.entity';
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { CommonEntity } from "src/database/commonEntity";
+import { UserEntity } from "src/user/entities/user.entity";
+import { Column, Entity, OneToOne } from "typeorm";
+import { AuthEntity } from "./auth.entity";
 
-@Entity()
-export class Password {
-  @PrimaryGeneratedColumn()
-  id: number;
+@Entity({ name: "password" })
+export class PasswordEntity extends CommonEntity<PasswordEntity> {
   @Column()
   salt: string;
+
   @Column({ nullable: true })
   hash: string;
+
   @Column({ nullable: true })
-  algo: string;
-  @OneToOne(() => UserEntity, (user) => user.password)
-  user: UserEntity;
+  algorithm: string;
+
+  @OneToOne(() => AuthEntity, (auth) => auth.password)
+  auth: UserEntity;
 }

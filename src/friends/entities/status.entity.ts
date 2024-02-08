@@ -1,13 +1,6 @@
+import { CommonEntity } from "src/database/commonEntity";
 import { UserEntity } from "src/user/entities/user.entity";
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinTable,
-  ManyToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
+import { Column, Entity, JoinTable, ManyToMany } from "typeorm";
 
 export enum FriendStatus {
   PENDING = "pending",
@@ -16,9 +9,9 @@ export enum FriendStatus {
 }
 
 @Entity({ name: "status" })
-export class StatusEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
+export class StatusEntity extends CommonEntity<StatusEntity> {
+  @Column({ type: "uuid" })
+  initiator: string;
 
   @Column({
     type: "enum",
@@ -26,12 +19,6 @@ export class StatusEntity {
     default: FriendStatus.PENDING,
   })
   status: FriendStatus;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @ManyToMany((type) => UserEntity, (user) => user.connections)
   @JoinTable()
